@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Project Atlas — Migration Status | VaporVM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #F1F4F7;
+    --panel: #FFFFFF;
+    --panel-border: #DDE3EA;
+    --ink: #0B2545;
+    --ink-soft: #4A5C74;
+    --brand: #6C5CE7;
+    --brand-soft: #EDEAFB;
+    --line-idle: #C7CFD8;
+    --complete: #1F9D6C;
+    --complete-bg: #E5F6EE;
+    --progress: #D98A1F;
+    --progress-bg: #FCEFDA;
+    --pending: #8A97A6;
+    --pending-bg: #EEF1F4;
+    --display: 'Space Grotesk', sans-serif;
+    --body: 'Inter', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body{
+    margin: 0;
+    background: var(--bg);
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(108,92,231,0.07), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(31,157,108,0.06), transparent 40%);
+    font-family: var(--body);
+    color: var(--ink);
+    padding: 48px 24px 80px;
+  }
+
+  .wrap{
+    max-width: 920px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  header{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+
+  .brand{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand-mark{
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--brand), #9B8CFF);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .brand-mark::after{
+    content: "";
+    position: absolute;
+    inset: 9px;
+    border-radius: 4px;
+    background: var(--bg);
+    opacity: 0.9;
+  }
+
+  .brand-name{
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 17px;
+    letter-spacing: 0.01em;
+  }
+
+  .live-badge{
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    padding: 7px 13px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-soft);
+  }
+
+  .live-dot{
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--complete);
+    box-shadow: 0 0 0 0 rgba(31,157,108,0.5);
+    animation: pulse 2.2s infinite;
+  }
+
+  @keyframes pulse{
+    0% { box-shadow: 0 0 0 0 rgba(31,157,108,0.45); }
+    70% { box-shadow: 0 0 0 7px rgba(31,157,108,0); }
+    100% { box-shadow: 0 0 0 0 rgba(31,157,108,0); }
+  }
+
+  h1{
+    font-family: var(--display);
+    font-size: clamp(28px, 4.5vw, 40px);
+    line-height: 1.15;
+    margin: 20px 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle{
+    color: var(--ink-soft);
+    font-size: 15.5px;
+    max-width: 60ch;
+    margin: 0 0 36px;
+  }
+
+  /* Overall progress strip */
+  .overview{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 44px;
+  }
+
+  .overview-stat{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .overview-stat .num{
+    font-family: var(--mono);
+    font-size: 22px;
+    font-weight: 500;
+  }
+
+  .overview-stat .label{
+    font-size: 11.5px;
+    color: var(--ink-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .overview-bar{
+    flex: 1;
+    min-width: 160px;
+    height: 8px;
+    border-radius: 100px;
+    background: var(--pending-bg);
+    overflow: hidden;
+    display: flex;
+  }
+
+  .overview-bar .seg-complete{ background: var(--complete); }
+  .overview-bar .seg-progress{ background: var(--progress); }
+
+  /* Pipeline */
+  .pipeline-label{
+    font-family: var(--mono);
+    font-size: 11.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-soft);
+    margin-bottom: 18px;
+  }
+
+  .pipeline{
+    display: flex;
+    flex-direction: column;
+  }
+
+  .node{
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 18px;
+    align-items: flex-start;
+    position: relative;
+    padding-bottom: 30px;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: rise 0.5s ease forwards;
+  }
+
+  .node:nth-child(1){ animation-delay: 0.02s; }
+  .node:nth-child(2){ animation-delay: 0.08s; }
+  .node:nth-child(3){ animation-delay: 0.14s; }
+  .node:nth-child(4){ animation-delay: 0.20s; }
+  .node:nth-child(5){ animation-delay: 0.26s; }
+  .node:nth-child(6){ animation-delay: 0.32s; }
+
+  @keyframes rise{
+    to{ opacity: 1; transform: translateY(0); }
+  }
+
+  .node:last-child{ padding-bottom: 0; }
+
+  .node-rail{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+  }
+
+  .node-dot{
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 3px solid var(--pending);
+    background: var(--panel);
+    flex-shrink: 0;
+    margin-top: 3px;
+  }
+
+  .node.is-complete .node-dot{ border-color: var(--complete); background: var(--complete); }
+  .node.is-progress .node-dot{ border-color: var(--progress); background: var(--panel); }
+
+  .node-line{
+    flex: 1;
+    width: 2px;
+    background: var(--line-idle);
+    margin-top: 4px;
+    min-height: 20px;
+  }
+
+  .node.is-complete .node-line{ background: var(--complete); }
+
+  .node-body{
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 14px 18px;
+  }
+
+  .node-title{
+    font-weight: 600;
+    font-size: 15px;
+    margin-bottom: 3px;
+  }
+
+  .node-meta{
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .status-pill{
+    align-self: flex-start;
+    margin-top: 2px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    padding: 6px 12px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  .is-complete .status-pill{ background: var(--complete-bg); color: var(--complete); }
+  .is-progress .status-pill{ background: var(--progress-bg); color: var(--progress); }
+  .is-pending .status-pill{ background: var(--pending-bg); color: var(--pending); }
+
+  footer{
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--panel-border);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  footer span.mono{ font-family: var(--mono); }
+
+  @media (max-width: 560px){
+    .node{ grid-template-columns: 22px 1fr; }
+    .status-pill{ grid-column: 2; margin-top: 8px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .node{ animation: none; opacity: 1; transform: none; }
+    .live-dot{ animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark"></div>
+      <div class="brand-name">VaporVM</div>
+    </div>
+    <div class="live-badge">
+      <span class="live-dot"></span>
+      Live — auto-deployed on push
+    </div>
+  </header>
+
+  <h1>Project Atlas — Migration Status</h1>
+  <p class="subtitle">Cloud migration progress for Project Atlas's UAE retail estate — 40 stores plus the online store, moving off on-premises infrastructure onto a resilient, monitored cloud footprint.</p>
+
+  <div class="overview">
+    <div class="overview-stat">
+      <span class="num">2 / 6</span>
+      <span class="label">Complete</span>
+    </div>
+    <div class="overview-bar">
+      <div class="seg-complete" style="width: 33%"></div>
+      <div class="seg-progress" style="width: 34%"></div>
+    </div>
+    <div class="overview-stat">
+      <span class="num">2</span>
+      <span class="label">In progress</span>
+    </div>
+    <div class="overview-stat">
+      <span class="num">2</span>
+      <span class="label">Pending</span>
+    </div>
+  </div>
+
+  <div class="pipeline-label">Migration pipeline</div>
+
+  <div class="pipeline">
+
+    <div class="node is-complete">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+        <div class="node-line"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Security Setup</div>
+        <div class="node-meta">Entra ID and Microsoft Defender configured across the estate</div>
+      </div>
+      <div class="status-pill">complete</div>
+    </div>
+
+    <div class="node is-complete">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+        <div class="node-line"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Network Configuration</div>
+        <div class="node-meta">Store-to-cloud connectivity provisioned and tested</div>
+      </div>
+      <div class="status-pill">complete</div>
+    </div>
+
+    <div class="node is-progress">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+        <div class="node-line"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Database Migration</div>
+        <div class="node-meta">Inventory and sales data syncing to the new cloud database</div>
+      </div>
+      <div class="status-pill">in progress</div>
+    </div>
+
+    <div class="node is-progress">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+        <div class="node-line"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Application Migration</div>
+        <div class="node-meta">Online store and POS services moving to cloud hosting</div>
+      </div>
+      <div class="status-pill">in progress</div>
+    </div>
+
+    <div class="node is-pending">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+        <div class="node-line"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Staff Training</div>
+        <div class="node-meta">Store and ops teams onboarded to the new systems</div>
+      </div>
+      <div class="status-pill">pending</div>
+    </div>
+
+    <div class="node is-pending">
+      <div class="node-rail">
+        <div class="node-dot"></div>
+      </div>
+      <div class="node-body">
+        <div class="node-title">Final Testing</div>
+        <div class="node-meta">Full load and failover testing before cutover</div>
+      </div>
+      <div class="status-pill">pending</div>
+    </div>
+
+  </div>
+
+  <footer>
+    <span>Project Atlas &times; VaporVM</span>
+    <span class="mono">deployed via GitHub Actions</span>
+  </footer>
+
+</div>
+</body>
+</html>
