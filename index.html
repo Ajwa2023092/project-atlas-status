@@ -321,19 +321,19 @@
 
   <div class="overview">
     <div class="overview-stat">
-      <span class="num">2 / 6</span>
+      <span class="num" id="stat-complete">–</span>
       <span class="label">Complete</span>
     </div>
     <div class="overview-bar">
-      <div class="seg-complete" style="width: 33%"></div>
-      <div class="seg-progress" style="width: 34%"></div>
+      <div class="seg-complete" id="bar-complete" style="width: 0%"></div>
+      <div class="seg-progress" id="bar-progress" style="width: 0%"></div>
     </div>
     <div class="overview-stat">
-      <span class="num">2</span>
+      <span class="num" id="stat-progress">–</span>
       <span class="label">In progress</span>
     </div>
     <div class="overview-stat">
-      <span class="num">2</span>
+      <span class="num" id="stat-pending">–</span>
       <span class="label">Pending</span>
     </div>
   </div>
@@ -421,5 +421,27 @@
   </footer>
 
 </div>
+
+<script>
+  // Reads the actual status of every node in the pipeline and fills in
+  // the overview numbers + bar automatically, so the two can never drift
+  // out of sync — update a node's class, everything above updates itself.
+  (function(){
+    var nodes = document.querySelectorAll('.node');
+    var total = nodes.length;
+    var complete = document.querySelectorAll('.node.is-complete').length;
+    var progress = document.querySelectorAll('.node.is-progress').length;
+    var pending = document.querySelectorAll('.node.is-pending').length;
+
+    document.getElementById('stat-complete').textContent = complete + ' / ' + total;
+    document.getElementById('stat-progress').textContent = progress;
+    document.getElementById('stat-pending').textContent = pending;
+
+    document.getElementById('bar-complete').style.width = (complete / total * 100) + '%';
+    document.getElementById('bar-progress').style.width = (progress / total * 100) + '%';
+  })();
+</script>
+
 </body>
 </html>
+
